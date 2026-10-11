@@ -37,14 +37,14 @@ jobs:
           flutter-version: '3.16.9'
           cache: true
 
-      - name: Show Flutter version
-        run: flutter --version
+      - name: Remove unavailable local signing configuration
+        run: |
+          rm -f android/key.properties android/app/key.properties
+          rm -f android/keystore.jks android/app/keystore.jks
 
       - name: Get dependencies
         run: flutter pub get
 
-      # Debug APK is signed automatically with Android's debug key.
-      # The project's release build has no signing key configured by default.
       - name: Build installable debug APK
         run: flutter build apk --debug
 
