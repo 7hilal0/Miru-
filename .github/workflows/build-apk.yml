@@ -43,13 +43,18 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Build release APK
-        run: flutter build apk --release
+      # Debug APK is signed automatically with Android's debug key.
+      # The project's release build has no signing key configured by default.
+      - name: Build installable debug APK
+        run: flutter build apk --debug
+
+      - name: Verify APK exists
+        run: test -s build/app/outputs/flutter-apk/app-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Miru-Android-APK
-          path: build/app/outputs/flutter-apk/*.apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
           retention-days: 14
