@@ -11,16 +11,8 @@ if (flutterRoot == null) {
     throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
 }
 
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-if (flutterVersionCode == null) {
-    flutterVersionCode = '1'
-}
-
-def flutterVersionName = localProperties.getProperty('flutter.versionName')
-if (flutterVersionName == null) {
-    flutterVersionName = '1.0'
-}
-
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
+def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0'
 
 def keystorePropertiesFile = rootProject.file("key.properties")
 def keystoreProperties = new Properties()
@@ -30,10 +22,15 @@ if (keystorePropertiesFile.exists()) {
     }
 }
 
-def _storeFile = file(System.getenv("KEYSTORE") ?: keystoreProperties.getProperty("storeFile") ?: "keystore.jks")
-def _storePassword = System.getenv("KEYSTORE_PASSWORD") ?: keystoreProperties.getProperty("storePassword")
-def _keyAlias = System.getenv("KEY_ALIAS") ?: keystoreProperties.getProperty("keyAlias")
-def _keyPassword = System.getenv("KEY_PASSWORD") ?: keystoreProperties.getProperty("keyPassword")
+def configuredStoreFile = System.getenv("KEYSTORE") ?: keystoreProperties.getProperty("storeFile")
+def storePasswordValue = System.getenv("KEYSTORE_PASSWORD") ?: keystoreProperties.getProperty("storePassword")
+def keyAliasValue = System.getenv("KEY_ALIAS") ?: keystoreProperties.getProperty("keyAlias")
+def keyPasswordValue = System.getenv("KEY_PASSWORD") ?: keystoreProperties.getProperty("keyPassword")
+def releaseKeystoreAvailable = configuredStoreFile != null &&
+    storePasswordValue != null &&
+    keyAliasValue != null &&
+    keyPasswordValue != null &&
+    file(configuredStoreFile).exists()
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
@@ -58,10 +55,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId "miru.miaomint"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdkVersion 21
         // Cannot be changed or bt-server will not start.
         targetSdkVersion 28
@@ -70,34 +64,26 @@ android {
     }
 
     signingConfigs {
-        release {
-            storeFile _storeFile
-            storePassword _storePassword
-            keyAlias _keyAlias
-            keyPassword _keyPassword
-            v1SigningEnabled true
-            v2SigningEnabled true
-        }
-        debug {
-            storeFile _storeFile
-            storePassword _storePassword
-            keyAlias _keyAlias
-            keyPassword _keyPassword
-            v1SigningEnabled true
-            v2SigningEnabled true
+        if (releaseKeystoreAvailable) {
+            release {
+                storeFile file(configuredStoreFile)
+                storePassword storePasswordValue
+                keyAlias keyAliasValue
+                keyPassword keyPasswordValue
+                v1SigningEnabled true
+                v2SigningEnabled true
+            }
         }
     }
-    
+
     buildTypes {
         release {
-            if (signingConfigs.release.storePassword != null){
+            if (releaseKeystoreAvailable) {
                 signingConfig signingConfigs.release
             }
         }
+        // Let Gradle use its standard debug signing key for debug builds.
         debug {
-            if (signingConfigs.debug.storePassword != null){
-                signingConfig signingConfigs.release
-            }
         }
     }
 }
